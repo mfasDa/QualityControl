@@ -3,5 +3,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::quality_control_modules::emcal::DigitsQcTask+;
+#pragma link C++ class o2::quality_control_modules::emcal::DigitsQcTask + ;
+#pragma link C++ class o2::quality_control_modules::emcal::RawTask + ;
+
+#pragma link C++ class o2::quality_control_modules::emcal::DigitCheck + ;
+
 #endif
