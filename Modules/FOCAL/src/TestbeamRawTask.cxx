@@ -288,7 +288,7 @@ void TestbeamRawTask::monitorData(o2::framework::ProcessingContext& ctx)
 
 void TestbeamRawTask::processPadPayload(gsl::span<const PadGBTWord> padpayload)
 {
-  processPadEvent(padpayload);
+  // processPadEvent(padpayload);
 
   constexpr std::size_t EVENTSIZEPADGBT = 1180;
   int nevents = padpayload.size() / EVENTSIZEPADGBT;
