@@ -113,6 +113,7 @@ class TestbeamRawTask final : public TaskInterface
   TH1* mHitsChipPixel = nullptr;                           ///< Number of hits / chip
   TH2* mPixelChipsIDsFound = nullptr;                      ///< Chip IDs vs FEE IDs
   TH2* mPixelChipsIDsHits = nullptr;                       ///< Chip IDs with hits vs FEE IDs
+  std::array<TH1*, 4> mPixelLaneIDChipIDFEE;               ///< Lane ID vs. chip ID for each FEE
   std::array<TProfile2D*, 2> mPixelChipHitProfileLayer;    ///< Hit profile for pixel chips
   std::array<TH2*, 2> mPixelChipHitmapLayer;               ///< Hit map for pixel chips
   std::array<TProfile2D*, 2> mPixelSegmentHitProfileLayer; ///< Hit profile for pixel segments

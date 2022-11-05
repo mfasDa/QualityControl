@@ -70,6 +70,9 @@ TestbeamRawTask::~TestbeamRawTask()
   if (mPixelChipsIDsHits) {
     delete mPixelChipsIDsHits;
   }
+  for (auto& hist : mPixelLaneIDChipIDFEE) {
+    delete hist;
+  }
   for (auto& hist : mPixelChipHitProfileLayer) {
     delete hist;
   }
@@ -97,6 +100,7 @@ void TestbeamRawTask::default_init()
   std::fill(mPadASICChannelTOT.begin(), mPadASICChannelTOT.end(), nullptr);
   std::fill(mHitMapPadASIC.begin(), mHitMapPadASIC.end(), nullptr);
 
+  std::fill(mPixelLaneIDChipIDFEE.begin(), mPixelLaneIDChipIDFEE.end(), nullptr);
   std::fill(mPixelChipHitProfileLayer.begin(), mPixelChipHitProfileLayer.end(), nullptr);
   std::fill(mPixelChipHitmapLayer.begin(), mPixelChipHitmapLayer.end(), nullptr);
   std::fill(mPixelSegmentHitProfileLayer.begin(), mPixelSegmentHitProfileLayer.end(), nullptr);
@@ -249,6 +253,12 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mPixelChipsIDsHits = new TH2D("Pixel_ChipIDsFilledFEE", "Chip ID with hits vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
     mPixelChipsIDsHits->SetDirectory(nullptr);
     getObjectsManager()->startPublishing(mPixelChipsIDsHits);
+
+    for (int ifee = 0; ifee < 4; ifee++) {
+      mPixelLaneIDChipIDFEE[ifee] = new TH2D(Form("Pixel_LaneIDChipID_FEE%d", ifee), Form("Lane ID vs. Chip ID for FEE %d; Lane ID; ChipID", ifee), 57, -0.5, 56.5, 31, -0.5, 30.5);
+      mPixelLaneIDChipIDFEE[ifee]->SetDirectory(nullptr);
+      getObjectsManager()->startPublishing(mPixelLaneIDChipIDFEE[ifee]);
+    }
 
     constexpr int PIXEL_LAYERS = 2;
     auto& refmapping = mPixelMapper->getMapping(0);
@@ -445,7 +455,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
 void TestbeamRawTask::processPixelPayload(gsl::span<const o2::itsmft::GBTWord> pixelpayload, uint16_t feeID)
 {
   auto fee = feeID & 0x00FF,
-       branch = (feeID & 0xFF00) >> 8;
+       branch = (feeID & 0x0F00) >> 8;
   ILOG(Debug, Support) << "Decoded FEE ID " << feeID << " -> FEE " << fee << ", branch " << branch << ENDM;
   auto useFEE = branch * 10 + fee;
   mLinksWithPayloadPixel->Fill(useFEE);
@@ -473,6 +483,7 @@ void TestbeamRawTask::processPixelPayload(gsl::span<const o2::itsmft::GBTWord> p
       nhitsAll += chip.mHits.size();
       mHitsChipPixel->Fill(chip.mHits.size());
       mAverageHitsChipPixel->Fill(useFEE, chip.mChipID, chip.mHits.size());
+      mPixelLaneIDChipIDFEE[fee]->Fill(chip.mLaneID, chip.mChipID);
       chipIDsFound.insert(chip.mChipID);
       if (chip.mHits.size()) {
         chipIDsHits.insert(chip.mChipID);
@@ -578,16 +589,24 @@ void TestbeamRawTask::reset()
   if (!mDisablePads) {
     mPayloadSizePadsGBT->Reset();
     for (auto padadc : mPadASICChannelADC) {
-      padadc->Reset();
+      if (padadc) {
+        padadc->Reset();
+      }
     }
     for (auto padtoa : mPadASICChannelTOA) {
-      padtoa->Reset();
+      if (padtoa) {
+        padtoa->Reset();
+      }
     }
     for (auto padtot : mPadASICChannelTOT) {
-      padtot->Reset();
+      if (padtot) {
+        padtot->Reset();
+      }
     }
     for (auto hitmap : mHitMapPadASIC) {
-      hitmap->Reset();
+      if (hitmap) {
+        hitmap->Reset();
+      }
     }
     for (auto& projections : mPadChannelProjections) {
       if (projections) {
@@ -616,23 +635,41 @@ void TestbeamRawTask::reset()
       mPixelChipsIDsFound->Reset();
     }
 
+    for (auto& hist : mPixelLaneIDChipIDFEE) {
+      if (hist) {
+        hist->Reset();
+      }
+    }
+
     for (auto& hist : mPixelChipHitProfileLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
     for (auto& hist : mPixelChipHitmapLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
     for (auto& hist : mPixelSegmentHitProfileLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
     for (auto& hist : mPixelSegmentHitmapLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
     for (auto& hist : mPixelHitDistribitionLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
     for (auto& hist : mPixelHitsTriggerLayer) {
-      hist->Reset();
+      if (hist) {
+        hist->Reset();
+      }
     }
   }
 }
