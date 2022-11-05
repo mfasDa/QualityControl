@@ -146,6 +146,11 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       }
     }
     std::sort(mChannelsPadProjections.begin(), mChannelsPadProjections.end(), std::less<int>());
+
+    auto hasCutTOT = mCustomParameters.find("PadCutTOT");
+    if (hasCutTOT != mCustomParameters.end()) {
+      mPadTOTCutADC = std::stoi(hasCutTOT->second);
+    }
   }
 
   default_init();
@@ -418,11 +423,15 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
     ILOG(Debug, Support) << "ASIC " << iasic << ", Header 1: " << asic.getSecondHeader() << ENDM;
     int currentchannel = 0;
     for (const auto& chan : asic.getChannels()) {
-      mPadASICChannelADC[iasic]->Fill(currentchannel, chan.getADC());
+      if (chan.getTOT() < mPadTOTCutADC) {
+        mPadASICChannelADC[iasic]->Fill(currentchannel, chan.getADC());
+        auto [column, row] = mPadMapper.getRowColFromChannelID(currentchannel);
+        mHitMapPadASIC[iasic]->Fill(column, row, chan.getADC());
+      }
       mPadASICChannelTOA[iasic]->Fill(currentchannel, chan.getTOA());
-      mPadASICChannelTOT[iasic]->Fill(currentchannel, chan.getTOT());
-      auto [column, row] = mPadMapper.getRowColFromChannelID(currentchannel);
-      mHitMapPadASIC[iasic]->Fill(column, row, chan.getADC());
+      if (chan.getTOT()) {
+        mPadASICChannelTOT[iasic]->Fill(currentchannel, chan.getTOT());
+      }
       if (std::find(mChannelsPadProjections.begin(), mChannelsPadProjections.end(), currentchannel) != mChannelsPadProjections.end()) {
         auto hist = mPadChannelProjections[iasic]->mHistos.find(currentchannel);
         if (hist != mPadChannelProjections[iasic]->mHistos.end()) {
@@ -432,22 +441,38 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
       currentchannel++;
     }
     // Fill CMN channels
-    mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getFirstCMN().getADC());
+    if (asic.getFirstCMN().getTOT() < mPadTOTCutADC) {
+      mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getFirstCMN().getADC());
+    }
     mPadASICChannelTOA[iasic]->Fill(currentchannel, asic.getFirstCMN().getTOA());
-    mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getFirstCMN().getTOT());
+    if (asic.getFirstCMN().getTOT()) {
+      mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getFirstCMN().getTOT());
+    }
     currentchannel++;
-    mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getSecondCMN().getADC());
+    if (asic.getSecondCMN().getTOT() < mPadTOTCutADC) {
+      mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getSecondCMN().getADC());
+    }
     mPadASICChannelTOA[iasic]->Fill(currentchannel, asic.getSecondCMN().getTOA());
-    mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getSecondCMN().getTOT());
+    if (asic.getSecondCMN().getTOT()) {
+      mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getSecondCMN().getTOT());
+    }
     currentchannel++;
     // Fill Calib channels
-    mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getFirstCalib().getADC());
+    if (asic.getFirstCalib().getTOT() < mPadTOTCutADC) {
+      mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getFirstCalib().getADC());
+    }
     mPadASICChannelTOA[iasic]->Fill(currentchannel, asic.getFirstCalib().getTOA());
-    mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getFirstCalib().getTOT());
+    if (asic.getFirstCalib().getTOT()) {
+      mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getFirstCalib().getTOT());
+    }
     currentchannel++;
-    mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getSecondCalib().getADC());
+    if (asic.getSecondCalib().getTOT() < mPadTOTCutADC) {
+      mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getSecondCalib().getADC());
+    }
     mPadASICChannelTOA[iasic]->Fill(currentchannel, asic.getSecondCalib().getTOA());
-    mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getSecondCalib().getTOT());
+    if (asic.getSecondCalib().getTOT()) {
+      mPadASICChannelTOT[iasic]->Fill(currentchannel, asic.getSecondCalib().getTOT());
+    }
     currentchannel++;
   }
 }
