@@ -90,6 +90,21 @@ TestbeamRawTask::~TestbeamRawTask()
   }
 }
 
+void TestbeamRawTask::default_init()
+{
+  std::fill(mPadASICChannelADC.begin(), mPadASICChannelADC.end(), nullptr);
+  std::fill(mPadASICChannelTOA.begin(), mPadASICChannelTOA.end(), nullptr);
+  std::fill(mPadASICChannelTOT.begin(), mPadASICChannelTOT.end(), nullptr);
+  std::fill(mHitMapPadASIC.begin(), mHitMapPadASIC.end(), nullptr);
+
+  std::fill(mPixelChipHitProfileLayer.begin(), mPixelChipHitProfileLayer.end(), nullptr);
+  std::fill(mPixelChipHitmapLayer.begin(), mPixelChipHitmapLayer.end(), nullptr);
+  std::fill(mPixelSegmentHitProfileLayer.begin(), mPixelSegmentHitProfileLayer.end(), nullptr);
+  std::fill(mPixelSegmentHitmapLayer.begin(), mPixelSegmentHitmapLayer.end(), nullptr);
+  std::fill(mPixelHitDistribitionLayer.begin(), mPixelHitDistribitionLayer.end(), nullptr);
+  std::fill(mPixelHitsTriggerLayer.begin(), mPixelHitsTriggerLayer.end(), nullptr);
+}
+
 void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
 {
   auto get_bool = [](const std::string_view input) -> bool {
@@ -116,10 +131,36 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mDisablePixels = get_bool(hasDisablePixels->second);
   }
 
+  mChannelsPadProjections = { 52, 16, 19, 46, 59, 14, 42 };
+  if (!mDisablePads) {
+    auto hasChannelsPadProjections = mCustomParameters.find("ChannelsPadProjections");
+    if (hasChannelsPadProjections != mCustomParameters.end()) {
+      std::stringstream parser(hasChannelsPadProjections->second);
+      std::string buffer;
+      while (std::getline(parser, buffer, ',')) {
+        mChannelsPadProjections.emplace_back(std::stoi(buffer));
+      }
+    }
+    std::sort(mChannelsPadProjections.begin(), mChannelsPadProjections.end(), std::less<int>());
+  }
+
+  default_init();
+
   ILOG(Info, Support) << "Pad QC:     " << (mDisablePads ? "disabled" : "enabled") << ENDM;
   ILOG(Info, Support) << "Pixel QC:   " << (mDisablePixels ? "disabled" : "enabled") << ENDM;
   if (!mDisablePads) {
     ILOG(Info, Support) << "Window dur:  " << winDur << ENDM;
+    std::stringstream channelstring;
+    bool firstchannel = true;
+    for (auto chan : mChannelsPadProjections) {
+      if (firstchannel) {
+        firstchannel = false;
+      } else {
+        channelstring << ", ";
+      }
+      channelstring << chan;
+    }
+    ILOG(Info, Support) << "Selected channels for pad ADC projections: " << channelstring.str() << ENDM;
   }
   ILOG(Info, Support) << "Debug mode: " << (mDebugMode ? "yes" : "no") << ENDM;
 
@@ -159,7 +200,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     constexpr int RANGE_TOA = 1024;
     constexpr int RANGE_TOT = 4096;
 
-    for (int iasic = 0; iasic < PadData::NASICS; iasic++) {
+    for (int iasic = 0; iasic < PAD_ASICS; iasic++) {
       mPadASICChannelADC[iasic] = new TH2D(Form("PadADC_ASIC_%d", iasic), Form("ADC vs. channel ID for ASIC %d; channel ID; ADC", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_ADC, 0., RANGE_ADC);
       mPadASICChannelADC[iasic]->SetStats(false);
       mPadASICChannelTOA[iasic] = new TH2D(Form("PadTOA_ASIC_%d", iasic), Form("TOA vs. channel ID for ASIC %d; channel ID; TOA", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOA, 0., RANGE_TOA);
@@ -172,6 +213,10 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       getObjectsManager()->startPublishing(mPadASICChannelTOA[iasic]);
       getObjectsManager()->startPublishing(mPadASICChannelTOT[iasic]);
       getObjectsManager()->startPublishing(mHitMapPadASIC[iasic]);
+
+      mPadChannelProjections[iasic] = std::make_unique<PadChannelProjections>();
+      mPadChannelProjections[iasic]->init(mChannelsPadProjections, iasic);
+      mPadChannelProjections[iasic]->startPublishing(*getObjectsManager());
     }
     mPayloadSizePadsGBT = new TH1D("PayloadSizePadGBT", "Payload size GBT words", 10000, 0., 10000.);
     getObjectsManager()->startPublishing(mPayloadSizePadsGBT);
@@ -357,7 +402,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
   mPadDecoder.reset();
   mPadDecoder.decodeEvent(padpayload);
   const auto& eventdata = mPadDecoder.getData();
-  for (int iasic = 0; iasic < PadData::NASICS; iasic++) {
+  for (int iasic = 0; iasic < PAD_ASICS; iasic++) {
     const auto& asic = eventdata[iasic].getASIC();
     ILOG(Debug, Support) << "ASIC " << iasic << ", Header 0: " << asic.getFirstHeader() << ENDM;
     ILOG(Debug, Support) << "ASIC " << iasic << ", Header 1: " << asic.getSecondHeader() << ENDM;
@@ -368,6 +413,12 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
       mPadASICChannelTOT[iasic]->Fill(currentchannel, chan.getTOT());
       auto [column, row] = mPadMapper.getRowColFromChannelID(currentchannel);
       mHitMapPadASIC[iasic]->Fill(column, row, chan.getADC());
+      if (std::find(mChannelsPadProjections.begin(), mChannelsPadProjections.end(), currentchannel) != mChannelsPadProjections.end()) {
+        auto hist = mPadChannelProjections[iasic]->mHistos.find(currentchannel);
+        if (hist != mPadChannelProjections[iasic]->mHistos.end()) {
+          hist->second->Fill(chan.getADC());
+        }
+      }
       currentchannel++;
     }
     // Fill CMN channels
@@ -538,6 +589,11 @@ void TestbeamRawTask::reset()
     for (auto hitmap : mHitMapPadASIC) {
       hitmap->Reset();
     }
+    for (auto& projections : mPadChannelProjections) {
+      if (projections) {
+        projections->reset();
+      }
+    }
   }
 
   if (!mDisablePixels) {
@@ -578,6 +634,36 @@ void TestbeamRawTask::reset()
     for (auto& hist : mPixelHitsTriggerLayer) {
       hist->Reset();
     }
+  }
+}
+
+TestbeamRawTask::PadChannelProjections::~PadChannelProjections()
+{
+  for (auto& [chan, hist] : mHistos) {
+    delete hist;
+  }
+}
+
+void TestbeamRawTask::PadChannelProjections::init(const std::vector<int> channels, int ASICid)
+{
+  for (auto chan : channels) {
+    auto hist = new TH1D(Form("Pad_ProjADC_ASIC%d_Chan%d", ASICid, chan), Form("Pad ADC projection ASIC %d channel %d", ASICid, chan), 101, -0.5, 100.5);
+    hist->SetStats(false);
+    mHistos.insert({ chan, hist });
+  }
+}
+
+void TestbeamRawTask::PadChannelProjections::startPublishing(o2::quality_control::core::ObjectsManager& mgr)
+{
+  for (auto& [chan, hist] : mHistos) {
+    mgr.startPublishing(hist);
+  }
+}
+
+void TestbeamRawTask::PadChannelProjections::reset()
+{
+  for (auto& [chan, hist] : mHistos) {
+    hist->Reset();
   }
 }
 
