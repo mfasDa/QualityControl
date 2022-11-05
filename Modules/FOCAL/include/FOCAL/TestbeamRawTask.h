@@ -80,6 +80,8 @@ class TestbeamRawTask final : public TaskInterface
   std::array<std::unordered_map<o2::InteractionRecord, int>, 2> mPixelNHitsLayer; ///< Number of hits / event layer
   std::vector<int> mHitSegmentCounter;                                            ///< Number of hits / segment
   bool mDebugMode = false;                                                        ///< Additional debug verbosity
+  bool mDisablePads = false;                                                      ///< Disable pads
+  bool mDisablePixels = false;                                                    ///< Disable pixels
 
   /////////////////////////////////////////////////////////////////////////////////////
   /// Pad histograms

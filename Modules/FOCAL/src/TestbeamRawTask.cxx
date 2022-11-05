@@ -107,113 +107,135 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mDebugMode = get_bool(hasDebugParam->second);
   }
 
-  PixelMapper::MappingType_t mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
-  auto pixellayout = mCustomParameters.find("Pixellayout");
-  if (pixellayout != mCustomParameters.end()) {
-    if (pixellayout->second == "IB") {
-      mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
-    } else if (pixellayout->second == "OB") {
-      mappingtype = PixelMapper::MappingType_t::MAPPING_OB;
-    } else {
-      ILOG(Fatal, Support) << "Unknown pixel setup: " << pixellayout->second << ENDM;
-    }
+  auto hasDisablePads = mCustomParameters.find("DisablePads");
+  if (hasDisablePads != mCustomParameters.end()) {
+    mDisablePads = get_bool(hasDisablePads->second);
   }
-  switch (mappingtype) {
-    case PixelMapper::MappingType_t::MAPPING_IB:
-      ILOG(Info, Support) << "Using pixel layout: IB" << ENDM;
-      break;
+  auto hasDisablePixels = mCustomParameters.find("DisablePixels");
+  if (hasDisablePixels != mCustomParameters.end()) {
+    mDisablePixels = get_bool(hasDisablePixels->second);
+  }
 
-    case PixelMapper::MappingType_t::MAPPING_OB:
-      ILOG(Info, Support) << "Using pixel layout: OB" << ENDM;
-      break;
-    default:
-      break;
+  ILOG(Info, Support) << "Pad QC:     " << (mDisablePads ? "disabled" : "enabled") << ENDM;
+  ILOG(Info, Support) << "Pixel QC:   " << (mDisablePixels ? "disabled" : "enabled") << ENDM;
+  if (!mDisablePads) {
+    ILOG(Info, Support) << "Window dur:  " << winDur << ENDM;
   }
-  mPixelMapper = std::make_unique<PixelMapper>(mappingtype);
+  ILOG(Info, Support) << "Debug mode: " << (mDebugMode ? "yes" : "no") << ENDM;
+
+  if (!mDisablePixels) {
+    PixelMapper::MappingType_t mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
+    auto pixellayout = mCustomParameters.find("Pixellayout");
+    if (pixellayout != mCustomParameters.end()) {
+      if (pixellayout->second == "IB") {
+        mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
+      } else if (pixellayout->second == "OB") {
+        mappingtype = PixelMapper::MappingType_t::MAPPING_OB;
+      } else {
+        ILOG(Fatal, Support) << "Unknown pixel setup: " << pixellayout->second << ENDM;
+      }
+    }
+    switch (mappingtype) {
+      case PixelMapper::MappingType_t::MAPPING_IB:
+        ILOG(Info, Support) << "Using pixel layout: IB" << ENDM;
+        break;
+
+      case PixelMapper::MappingType_t::MAPPING_OB:
+        ILOG(Info, Support) << "Using pixel layout: OB" << ENDM;
+        break;
+      default:
+        break;
+    }
+    mPixelMapper = std::make_unique<PixelMapper>(mappingtype);
+  }
 
   /////////////////////////////////////////////////////////////////
   /// PAD histograms
   /////////////////////////////////////////////////////////////////
 
-  constexpr int PAD_CHANNELS = 76;
-  constexpr int RANGE_ADC = 1024;
-  constexpr int RANGE_TOA = 1024;
-  constexpr int RANGE_TOT = 4096;
+  if (!mDisablePads) {
+    constexpr int PAD_CHANNELS = 76;
+    constexpr int RANGE_ADC = 1024;
+    constexpr int RANGE_TOA = 1024;
+    constexpr int RANGE_TOT = 4096;
 
-  for (int iasic = 0; iasic < PadData::NASICS; iasic++) {
-    mPadASICChannelADC[iasic] = new TH2D(Form("PadADC_ASIC_%d", iasic), Form("ADC vs. channel ID for ASIC %d; channel ID; ADC", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_ADC, 0., RANGE_ADC);
-    mPadASICChannelADC[iasic]->SetStats(false);
-    mPadASICChannelTOA[iasic] = new TH2D(Form("PadTOA_ASIC_%d", iasic), Form("TOA vs. channel ID for ASIC %d; channel ID; TOA", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOA, 0., RANGE_TOA);
-    mPadASICChannelTOA[iasic]->SetStats(false);
-    mPadASICChannelTOT[iasic] = new TH2D(Form("PadTOT_ASIC_%d", iasic), Form("TOT vs. channel ID for ASIC %d; channel ID; TOT", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOT / 4, 0., RANGE_TOT);
-    mPadASICChannelTOT[iasic]->SetStats(false);
-    mHitMapPadASIC[iasic] = new TProfile2D(Form("HitmapPadASIC_%d", iasic), Form("Hitmap for ASIC %d; col; row", iasic), PadMapper::NCOLUMN, -0.5, PadMapper::NCOLUMN - 0.5, PadMapper::NROW, -0.5, PadMapper::NROW - 0.5);
-    mHitMapPadASIC[iasic]->SetStats(false);
-    getObjectsManager()->startPublishing(mPadASICChannelADC[iasic]);
-    getObjectsManager()->startPublishing(mPadASICChannelTOA[iasic]);
-    getObjectsManager()->startPublishing(mPadASICChannelTOT[iasic]);
-    getObjectsManager()->startPublishing(mHitMapPadASIC[iasic]);
+    for (int iasic = 0; iasic < PadData::NASICS; iasic++) {
+      mPadASICChannelADC[iasic] = new TH2D(Form("PadADC_ASIC_%d", iasic), Form("ADC vs. channel ID for ASIC %d; channel ID; ADC", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_ADC, 0., RANGE_ADC);
+      mPadASICChannelADC[iasic]->SetStats(false);
+      mPadASICChannelTOA[iasic] = new TH2D(Form("PadTOA_ASIC_%d", iasic), Form("TOA vs. channel ID for ASIC %d; channel ID; TOA", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOA, 0., RANGE_TOA);
+      mPadASICChannelTOA[iasic]->SetStats(false);
+      mPadASICChannelTOT[iasic] = new TH2D(Form("PadTOT_ASIC_%d", iasic), Form("TOT vs. channel ID for ASIC %d; channel ID; TOT", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOT / 4, 0., RANGE_TOT);
+      mPadASICChannelTOT[iasic]->SetStats(false);
+      mHitMapPadASIC[iasic] = new TProfile2D(Form("HitmapPadASIC_%d", iasic), Form("Hitmap for ASIC %d; col; row", iasic), PadMapper::NCOLUMN, -0.5, PadMapper::NCOLUMN - 0.5, PadMapper::NROW, -0.5, PadMapper::NROW - 0.5);
+      mHitMapPadASIC[iasic]->SetStats(false);
+      getObjectsManager()->startPublishing(mPadASICChannelADC[iasic]);
+      getObjectsManager()->startPublishing(mPadASICChannelTOA[iasic]);
+      getObjectsManager()->startPublishing(mPadASICChannelTOT[iasic]);
+      getObjectsManager()->startPublishing(mHitMapPadASIC[iasic]);
+    }
+    mPayloadSizePadsGBT = new TH1D("PayloadSizePadGBT", "Payload size GBT words", 10000, 0., 10000.);
+    getObjectsManager()->startPublishing(mPayloadSizePadsGBT);
   }
-  mPayloadSizePadsGBT = new TH1D("PayloadSizePadGBT", "Payload size GBT words", 10000, 0., 10000.);
-  getObjectsManager()->startPublishing(mPayloadSizePadsGBT);
 
   /////////////////////////////////////////////////////////////////
   /// Pixel histograms
   /////////////////////////////////////////////////////////////////
-  constexpr int FEES = 30;
-  constexpr int MAX_CHIPS = 14;    // For the moment leave completely open
-  constexpr int MAX_TRIGGERS = 10; // Number of triggers / HBF usually sparse
-  mLinksWithPayloadPixel = new TH1D("Pixel_PagesFee", "HBF vs. FEE ID; FEE ID; HBFs", FEES, -0.5, FEES - 0.5);
-  getObjectsManager()->startPublishing(mLinksWithPayloadPixel);
-  mTriggersFeePixel = new TH2D("Pixel_NumTriggerHBF", "Number of triggers per HBF and FEE; FEE ID; Number of triggers / HBF", FEES, -0.5, FEES - 0.5, MAX_TRIGGERS, -0.5, MAX_TRIGGERS - 0.5);
-  mTriggersFeePixel->SetStats(false);
-  getObjectsManager()->startPublishing(mTriggersFeePixel);
-  mAverageHitsChipPixel = new TProfile2D("Pixel_AverageNumberOfHitsChip", "Average number of hits / chip", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
-  mAverageHitsChipPixel->SetStats(false);
-  getObjectsManager()->startPublishing(mAverageHitsChipPixel);
-  mHitsChipPixel = new TH1D("Pixel_NumberHits", "Number of hits / chip", 50, 0., 50);
-  mHitsChipPixel->SetStats(false);
-  getObjectsManager()->startPublishing(mHitsChipPixel);
-  mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger", 1001, -0.5, 1000.5);
-  mPixelHitsTriggerAll->SetStats(false);
-  getObjectsManager()->startPublishing(mPixelHitsTriggerAll);
-  mPixelChipsIDsFound = new TH2D("Pixel_ChipIDsFEE", "Chip ID vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
-  mPixelChipsIDsFound->SetDirectory(nullptr);
-  getObjectsManager()->startPublishing(mPixelChipsIDsFound);
-  mPixelChipsIDsHits = new TH2D("Pixel_ChipIDsFilledFEE", "Chip ID with hits vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
-  mPixelChipsIDsHits->SetDirectory(nullptr);
-  getObjectsManager()->startPublishing(mPixelChipsIDsHits);
+  if (!mDisablePixels) {
+    constexpr int FEES = 30;
+    constexpr int MAX_CHIPS = 14;    // For the moment leave completely open
+    constexpr int MAX_TRIGGERS = 10; // Number of triggers / HBF usually sparse
+    mLinksWithPayloadPixel = new TH1D("Pixel_PagesFee", "HBF vs. FEE ID; FEE ID; HBFs", FEES, -0.5, FEES - 0.5);
+    getObjectsManager()->startPublishing(mLinksWithPayloadPixel);
+    mTriggersFeePixel = new TH2D("Pixel_NumTriggerHBF", "Number of triggers per HBF and FEE; FEE ID; Number of triggers / HBF", FEES, -0.5, FEES - 0.5, MAX_TRIGGERS, -0.5, MAX_TRIGGERS - 0.5);
+    mTriggersFeePixel->SetStats(false);
+    getObjectsManager()->startPublishing(mTriggersFeePixel);
+    mAverageHitsChipPixel = new TProfile2D("Pixel_AverageNumberOfHitsChip", "Average number of hits / chip", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
+    mAverageHitsChipPixel->SetStats(false);
+    getObjectsManager()->startPublishing(mAverageHitsChipPixel);
+    mHitsChipPixel = new TH1D("Pixel_NumberHits", "Number of hits / chip", 50, 0., 50);
+    mHitsChipPixel->SetStats(false);
+    getObjectsManager()->startPublishing(mHitsChipPixel);
+    mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger", 1001, -0.5, 1000.5);
+    mPixelHitsTriggerAll->SetStats(false);
+    getObjectsManager()->startPublishing(mPixelHitsTriggerAll);
+    mPixelChipsIDsFound = new TH2D("Pixel_ChipIDsFEE", "Chip ID vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
+    mPixelChipsIDsFound->SetDirectory(nullptr);
+    getObjectsManager()->startPublishing(mPixelChipsIDsFound);
+    mPixelChipsIDsHits = new TH2D("Pixel_ChipIDsFilledFEE", "Chip ID with hits vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
+    mPixelChipsIDsHits->SetDirectory(nullptr);
+    getObjectsManager()->startPublishing(mPixelChipsIDsHits);
 
-  constexpr int PIXEL_LAYERS = 2;
-  auto& refmapping = mPixelMapper->getMapping(0);
-  auto pixel_segments = getNumberOfPixelSegments(mPixelMapper->getMappingType());
-  auto pixel_columns = refmapping.getNumberOfColumns(),
-       pixel_rows = refmapping.getNumberOfRows(),
-       pixel_chips = pixel_columns * pixel_rows,
-       segments_colums = pixel_columns * pixel_segments.first,
-       segments_rows = pixel_rows * pixel_segments.second;
-  ILOG(Info, Support) << "Setup acceptance histograms " << pixel_columns << " colums and " << pixel_rows << " rows (" << pixel_chips << " chips)" << ENDM;
-  for (int ilayer = 0; ilayer < PIXEL_LAYERS; ilayer++) {
-    mPixelChipHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
-    mPixelChipHitProfileLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelChipHitProfileLayer[ilayer]);
-    mPixelChipHitmapLayer[ilayer] = new TH2D(Form("Pixel_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
-    mPixelChipHitmapLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelChipHitmapLayer[ilayer]);
-    mPixelSegmentHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Segment_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
-    mPixelSegmentHitProfileLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelSegmentHitProfileLayer[ilayer]);
-    mPixelSegmentHitmapLayer[ilayer] = new TH2D(Form("Pixel_Segment_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
-    mPixelSegmentHitmapLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelSegmentHitmapLayer[ilayer]);
-    mPixelHitDistribitionLayer[ilayer] = new TH2D(Form("Pixel_Hitdist_%d", ilayer), Form("Pixel hit distribution in layer %d", ilayer), pixel_chips, -0.5, pixel_chips - 0.5, 101, -0.5, 100.5);
-    mPixelHitDistribitionLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelHitDistribitionLayer[ilayer]);
-    mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d", ilayer), 1001, -0.5, 1000.5);
-    mPixelHitsTriggerLayer[ilayer]->SetStats(false);
-    getObjectsManager()->startPublishing(mPixelHitsTriggerLayer[ilayer]);
+    constexpr int PIXEL_LAYERS = 2;
+    auto& refmapping = mPixelMapper->getMapping(0);
+    auto pixel_segments = getNumberOfPixelSegments(mPixelMapper->getMappingType());
+    auto pixel_columns = refmapping.getNumberOfColumns(),
+         pixel_rows = refmapping.getNumberOfRows(),
+         pixel_chips = pixel_columns * pixel_rows,
+         segments_colums = pixel_columns * pixel_segments.first,
+         segments_rows = pixel_rows * pixel_segments.second;
+    ILOG(Info, Support) << "Setup acceptance histograms " << pixel_columns << " colums and " << pixel_rows << " rows (" << pixel_chips << " chips)" << ENDM;
+    for (int ilayer = 0; ilayer < PIXEL_LAYERS; ilayer++) {
+      mPixelChipHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
+      mPixelChipHitProfileLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelChipHitProfileLayer[ilayer]);
+      mPixelChipHitmapLayer[ilayer] = new TH2D(Form("Pixel_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
+      mPixelChipHitmapLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelChipHitmapLayer[ilayer]);
+      mPixelSegmentHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Segment_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
+      mPixelSegmentHitProfileLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelSegmentHitProfileLayer[ilayer]);
+      mPixelSegmentHitmapLayer[ilayer] = new TH2D(Form("Pixel_Segment_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
+      mPixelSegmentHitmapLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelSegmentHitmapLayer[ilayer]);
+      mPixelHitDistribitionLayer[ilayer] = new TH2D(Form("Pixel_Hitdist_%d", ilayer), Form("Pixel hit distribution in layer %d", ilayer), pixel_chips, -0.5, pixel_chips - 0.5, 101, -0.5, 100.5);
+      mPixelHitDistribitionLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelHitDistribitionLayer[ilayer]);
+      mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d", ilayer), 1001, -0.5, 1000.5);
+      mPixelHitsTriggerLayer[ilayer]->SetStats(false);
+      getObjectsManager()->startPublishing(mPixelHitsTriggerLayer[ilayer]);
+    }
+    mHitSegmentCounter.resize(segments_colums * segments_rows);
   }
-  mHitSegmentCounter.resize(segments_colums * segments_rows);
 }
 
 void TestbeamRawTask::startOfActivity(Activity& activity)
@@ -259,15 +281,19 @@ void TestbeamRawTask::monitorData(o2::framework::ProcessingContext& ctx)
               // Data ready
               if (currentendpoint == 1) {
                 // Pad data
-                ILOG(Debug, Support) << "Processing PAD data" << ENDM;
-                auto payloadsizeGBT = rawbuffer.size() * sizeof(char) / sizeof(PadGBTWord);
-                processPadPayload(gsl::span<const PadGBTWord>(reinterpret_cast<const PadGBTWord*>(rawbuffer.data()), payloadsizeGBT));
+                if (!mDisablePads) {
+                  ILOG(Debug, Support) << "Processing PAD data" << ENDM;
+                  auto payloadsizeGBT = rawbuffer.size() * sizeof(char) / sizeof(PadGBTWord);
+                  processPadPayload(gsl::span<const PadGBTWord>(reinterpret_cast<const PadGBTWord*>(rawbuffer.data()), payloadsizeGBT));
+                }
               } else if (currentendpoint == 0) {
                 // Pixel data
-                auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
-                ILOG(Debug, Support) << "Processing Pixel data from FEE " << feeID << ENDM;
-                auto payloadsizeGBT = rawbuffer.size() * sizeof(char) / sizeof(o2::itsmft::GBTWord);
-                processPixelPayload(gsl::span<const o2::itsmft::GBTWord>(reinterpret_cast<const o2::itsmft::GBTWord*>(rawbuffer.data()), payloadsizeGBT), feeID);
+                if (!mDisablePixels) {
+                  auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
+                  ILOG(Debug, Support) << "Processing Pixel data from FEE " << feeID << ENDM;
+                  auto payloadsizeGBT = rawbuffer.size() * sizeof(char) / sizeof(o2::itsmft::GBTWord);
+                  processPixelPayload(gsl::span<const o2::itsmft::GBTWord>(reinterpret_cast<const o2::itsmft::GBTWord*>(rawbuffer.data()), payloadsizeGBT), feeID);
+                }
               } else {
                 ILOG(Error, Support) << "Unsupported endpoint " << currentendpoint << ENDM;
               }
@@ -498,56 +524,60 @@ void TestbeamRawTask::reset()
   // clean all the monitor objects here
 
   ILOG(Info, Support) << "Resetting the histogram" << ENDM;
-  mPayloadSizePadsGBT->Reset();
-  for (auto padadc : mPadASICChannelADC) {
-    padadc->Reset();
-  }
-  for (auto padtoa : mPadASICChannelTOA) {
-    padtoa->Reset();
-  }
-  for (auto padtot : mPadASICChannelTOT) {
-    padtot->Reset();
-  }
-  for (auto hitmap : mHitMapPadASIC) {
-    hitmap->Reset();
-  }
-
-  if (mLinksWithPayloadPixel) {
-    mLinksWithPayloadPixel->Reset();
-  }
-  if (mTriggersFeePixel) {
-    mTriggersFeePixel->Reset();
-  }
-  if (mAverageHitsChipPixel) {
-    mAverageHitsChipPixel->Reset();
-  }
-  if (mHitsChipPixel) {
-    mHitsChipPixel->Reset();
-  }
-  if (mPixelHitsTriggerAll) {
-    mPixelHitsTriggerAll->Reset();
-  }
-  if (mPixelChipsIDsFound) {
-    mPixelChipsIDsFound->Reset();
+  if (!mDisablePads) {
+    mPayloadSizePadsGBT->Reset();
+    for (auto padadc : mPadASICChannelADC) {
+      padadc->Reset();
+    }
+    for (auto padtoa : mPadASICChannelTOA) {
+      padtoa->Reset();
+    }
+    for (auto padtot : mPadASICChannelTOT) {
+      padtot->Reset();
+    }
+    for (auto hitmap : mHitMapPadASIC) {
+      hitmap->Reset();
+    }
   }
 
-  for (auto& hist : mPixelChipHitProfileLayer) {
-    hist->Reset();
-  }
-  for (auto& hist : mPixelChipHitmapLayer) {
-    hist->Reset();
-  }
-  for (auto& hist : mPixelSegmentHitProfileLayer) {
-    hist->Reset();
-  }
-  for (auto& hist : mPixelSegmentHitmapLayer) {
-    hist->Reset();
-  }
-  for (auto& hist : mPixelHitDistribitionLayer) {
-    hist->Reset();
-  }
-  for (auto& hist : mPixelHitsTriggerLayer) {
-    hist->Reset();
+  if (!mDisablePixels) {
+    if (mLinksWithPayloadPixel) {
+      mLinksWithPayloadPixel->Reset();
+    }
+    if (mTriggersFeePixel) {
+      mTriggersFeePixel->Reset();
+    }
+    if (mAverageHitsChipPixel) {
+      mAverageHitsChipPixel->Reset();
+    }
+    if (mHitsChipPixel) {
+      mHitsChipPixel->Reset();
+    }
+    if (mPixelHitsTriggerAll) {
+      mPixelHitsTriggerAll->Reset();
+    }
+    if (mPixelChipsIDsFound) {
+      mPixelChipsIDsFound->Reset();
+    }
+
+    for (auto& hist : mPixelChipHitProfileLayer) {
+      hist->Reset();
+    }
+    for (auto& hist : mPixelChipHitmapLayer) {
+      hist->Reset();
+    }
+    for (auto& hist : mPixelSegmentHitProfileLayer) {
+      hist->Reset();
+    }
+    for (auto& hist : mPixelSegmentHitmapLayer) {
+      hist->Reset();
+    }
+    for (auto& hist : mPixelHitDistribitionLayer) {
+      hist->Reset();
+    }
+    for (auto& hist : mPixelHitsTriggerLayer) {
+      hist->Reset();
+    }
   }
 }
 
