@@ -80,7 +80,7 @@ class TestbeamRawTask final : public TaskInterface
   void processPixelPayload(gsl::span<const o2::itsmft::GBTWord> gbtpayload, uint16_t feeID);
   void processPadEvent(gsl::span<const PadGBTWord> gbtpayload);
   std::pair<int, int> getNumberOfPixelSegments(PixelMapper::MappingType_t mappingtype) const;
-  std::pair<int, int> getPixelSegment(const PixelHit& hit, PixelMapper::MappingType_t mappingtype) const;
+  std::pair<int, int> getPixelSegment(const PixelHit& hit, PixelMapper::MappingType_t mappingtype, const PixelMapping::ChipPosition& chipMapping) const;
 
   PadDecoder mPadDecoder;                                                         ///< Decoder for pad data
   PadMapper mPadMapper;                                                           ///< Mapping for Pads

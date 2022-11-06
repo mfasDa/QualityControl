@@ -520,7 +520,7 @@ void TestbeamRawTask::processPixelPayload(gsl::span<const o2::itsmft::GBTWord> p
         int chipIndex = position.mRow * 7 + position.mColumn;
         mPixelHitDistribitionLayer[layer]->Fill(chipIndex, chip.mHits.size());
         for (auto& hit : chip.mHits) {
-          auto segment = getPixelSegment(hit, mappingtype);
+          auto segment = getPixelSegment(hit, mappingtype, position);
           auto segment_col = position.mColumn * numbersegments.first + segment.first;
           auto segment_row = position.mRow * numbersegments.second + segment.second;
           mPixelSegmentHitmapLayer[layer]->Fill(segment_col, segment_row);
@@ -559,17 +559,21 @@ void TestbeamRawTask::processPixelPayload(gsl::span<const o2::itsmft::GBTWord> p
   }
 }
 
-std::pair<int, int> TestbeamRawTask::getPixelSegment(const PixelHit& hit, PixelMapper::MappingType_t mappingtype) const
+std::pair<int, int> TestbeamRawTask::getPixelSegment(const PixelHit& hit, PixelMapper::MappingType_t mappingtype, const PixelMapping::ChipPosition& chipMapping) const
 {
-  int row = -1, col = -1;
+  int row = -1, col = -1, absColumn = -1, absRow = -1;
   switch (mappingtype) {
     case PixelMapper::MappingType_t::MAPPING_IB:
-      col = hit.mColumn / PIXEL_COL_SEGMENSIZE_IB;
-      row = hit.mRow / PIXEL_ROW_SEGMENTSIZE_IB;
+      absColumn = chipMapping.mInvertColumn ? PIXEL_COLS_IB - hit.mColumn : hit.mColumn;
+      absRow = chipMapping.mInvertRow ? PIXEL_ROWS_IB - hit.mRow : hit.mRow;
+      col = absColumn / PIXEL_COL_SEGMENSIZE_IB;
+      row = absRow / PIXEL_ROW_SEGMENTSIZE_IB;
       break;
     case PixelMapper::MappingType_t::MAPPING_OB:
-      col = hit.mColumn / PIXEL_COL_SEGMENSIZE_OB;
-      row = hit.mRow / PIXEL_ROW_SEGMENTSIZE_OB;
+      absColumn = chipMapping.mInvertColumn ? PIXEL_COLS_OB - hit.mColumn : hit.mColumn;
+      absRow = chipMapping.mInvertRow ? PIXEL_ROWS_OB - hit.mRow : hit.mRow;
+      col = absColumn / PIXEL_COL_SEGMENSIZE_OB;
+      row = absRow / PIXEL_ROW_SEGMENTSIZE_OB;
       break;
     default:
       break;
