@@ -426,7 +426,11 @@ void TestbeamRawTask::processPadEvent(gsl::span<const PadGBTWord> padpayload)
       if (chan.getTOT() < mPadTOTCutADC) {
         mPadASICChannelADC[iasic]->Fill(currentchannel, chan.getADC());
         auto [column, row] = mPadMapper.getRowColFromChannelID(currentchannel);
-        mHitMapPadASIC[iasic]->Fill(column, row, chan.getADC());
+        // temporary mask channel col 7 row 8 in ASIC 0
+        auto mask = (iasic == 0) && ((column == 7) && (row == 8));
+        if (!mask) {
+          mHitMapPadASIC[iasic]->Fill(column, row, chan.getADC());
+        }
       }
       mPadASICChannelTOA[iasic]->Fill(currentchannel, chan.getTOA());
       if (chan.getTOT()) {
