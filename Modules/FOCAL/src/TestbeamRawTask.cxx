@@ -249,7 +249,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mHitsChipPixel = new TH1D("Pixel_NumberHits", "Number of hits / chip", 50, 0., 50);
     mHitsChipPixel->SetStats(false);
     getObjectsManager()->startPublishing(mHitsChipPixel);
-    mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger", 1500, -0.5, 15000);
+    mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger; Number of hits; Number of events", 1500, -0.5, 15000);
     mPixelHitsTriggerAll->SetStats(false);
     getObjectsManager()->startPublishing(mPixelHitsTriggerAll);
     mPixelChipsIDsFound = new TH2D("Pixel_ChipIDsFEE", "Chip ID vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
@@ -273,24 +273,25 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
          pixel_chips = pixel_columns * pixel_rows,
          segments_colums = pixel_columns * pixel_segments.first,
          segments_rows = pixel_rows * pixel_segments.second;
+    std::array<int, 2> pixelLayerIndex = { { 10, 5 } };
     ILOG(Info, Support) << "Setup acceptance histograms " << pixel_columns << " colums and " << pixel_rows << " rows (" << pixel_chips << " chips)" << ENDM;
     for (int ilayer = 0; ilayer < PIXEL_LAYERS; ilayer++) {
-      mPixelChipHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
+      mPixelChipHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d; X; Y", pixelLayerIndex[ilayer]), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
       mPixelChipHitProfileLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelChipHitProfileLayer[ilayer]);
-      mPixelChipHitmapLayer[ilayer] = new TH2D(Form("Pixel_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
+      mPixelChipHitmapLayer[ilayer] = new TH2D(Form("Pixel_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d; X; Y", pixelLayerIndex[ilayer]), pixel_columns, -0.5, pixel_columns - 0.5, pixel_rows, -0.5, pixel_rows - 0.5);
       mPixelChipHitmapLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelChipHitmapLayer[ilayer]);
-      mPixelSegmentHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Segment_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
+      mPixelSegmentHitProfileLayer[ilayer] = new TProfile2D(Form("Pixel_Segment_Hitprofile_%d", ilayer), Form("Pixel hit profile in layer %d; X; Y", pixelLayerIndex[ilayer]), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
       mPixelSegmentHitProfileLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelSegmentHitProfileLayer[ilayer]);
-      mPixelSegmentHitmapLayer[ilayer] = new TH2D(Form("Pixel_Segment_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d", ilayer), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
+      mPixelSegmentHitmapLayer[ilayer] = new TH2D(Form("Pixel_Segment_Hitmap_%d", ilayer), Form("Pixel hitmap in layer %d; X; Y", pixelLayerIndex[ilayer]), segments_colums, -0.5, segments_colums - 0.5, segments_rows, -0.5, segments_rows - 0.5);
       mPixelSegmentHitmapLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelSegmentHitmapLayer[ilayer]);
-      mPixelHitDistribitionLayer[ilayer] = new TH2D(Form("Pixel_Hitdist_%d", ilayer), Form("Pixel hit distribution in layer %d", ilayer), pixel_chips, -0.5, pixel_chips - 0.5, 101, -0.5, 100.5);
+      mPixelHitDistribitionLayer[ilayer] = new TH2D(Form("Pixel_Hitdist_%d", ilayer), Form("Pixel hit distribution in layer %d; Number of hits / chip; Number of events", pixelLayerIndex[ilayer]), pixel_chips, -0.5, pixel_chips - 0.5, 101, -0.5, 100.5);
       mPixelHitDistribitionLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelHitDistribitionLayer[ilayer]);
-      mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d", ilayer), 1500, 0, 15000.);
+      mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d; Number of hits / layer; Number of events", pixelLayerIndex[ilayer]), 1500, 0, 15000.);
       mPixelHitsTriggerLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelHitsTriggerLayer[ilayer]);
     }
