@@ -249,7 +249,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mHitsChipPixel = new TH1D("Pixel_NumberHits", "Number of hits / chip", 50, 0., 50);
     mHitsChipPixel->SetStats(false);
     getObjectsManager()->startPublishing(mHitsChipPixel);
-    mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger", 1001, -0.5, 1000.5);
+    mPixelHitsTriggerAll = new TH1D("Pixel_TotalNumberHitsTrigger", "Number of hits per trigger", 1500, -0.5, 15000);
     mPixelHitsTriggerAll->SetStats(false);
     getObjectsManager()->startPublishing(mPixelHitsTriggerAll);
     mPixelChipsIDsFound = new TH2D("Pixel_ChipIDsFEE", "Chip ID vs. FEE ID", FEES, -0.5, FEES - 0.5, MAX_CHIPS, -0.5, MAX_CHIPS - 0.5);
@@ -290,7 +290,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       mPixelHitDistribitionLayer[ilayer] = new TH2D(Form("Pixel_Hitdist_%d", ilayer), Form("Pixel hit distribution in layer %d", ilayer), pixel_chips, -0.5, pixel_chips - 0.5, 101, -0.5, 100.5);
       mPixelHitDistribitionLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelHitDistribitionLayer[ilayer]);
-      mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d", ilayer), 1001, -0.5, 1000.5);
+      mPixelHitsTriggerLayer[ilayer] = new TH1D(Form("Pixel_NumberHitsTrigger_%d", ilayer), Form("Number of hits per trigger in layer %d", ilayer), 1500, 0, 15000.);
       mPixelHitsTriggerLayer[ilayer]->SetStats(false);
       getObjectsManager()->startPublishing(mPixelHitsTriggerLayer[ilayer]);
     }
