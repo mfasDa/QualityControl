@@ -119,7 +119,15 @@ class TestbeamRawTask final : public TaskInterface
   std::array<TH2*, PAD_ASICS> mPadASICChannelTOA;                                       ///< TOA per channel for each ASIC
   std::array<TH2*, PAD_ASICS> mPadASICChannelTOT;                                       ///< TOT per channel for each ASIC
   std::array<TH2*, PAD_ASICS> mHitMapPadASIC;                                           ///< Hitmap per ASIC
+  std::array<TH1*, PAD_ASICS> mPadTOTSumASIC;                                           ///< Sum of TOT per ASIC
+  std::array<TH1*, PAD_ASICS> mPadADCSumASIC;                                           ///< Sum of ADC per ASIC
+  std::array<TH2*, PAD_ASICS> mPadTOTCorrASIC;                                          ///< TOT correlation between ASICs
+  std::array<TH2*, PAD_ASICS> mPadADCCorrASIC;                                          ///< ADC correlation between ASICs
+  TH1* mPadTOTSumGlobal = nullptr;                                                      ///< Sum of TOT per event
+  TH1* mPadADCSumGlobal = nullptr;                                                      ///< Sum of ADC per event
   std::array<std::unique_ptr<PadChannelProjections>, PAD_ASICS> mPadChannelProjections; ///< ADC projections per ASIC channel
+  TH2* mPadTOAvsASIC = nullptr;                                                       ///< average TOA for each ASICs
+
 
   /////////////////////////////////////////////////////////////////////////////////////
   /// Pixel histograms
