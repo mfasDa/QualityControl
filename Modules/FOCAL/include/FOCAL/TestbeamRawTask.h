@@ -134,9 +134,6 @@ class TestbeamRawTask final : public TaskInterface
   TH2* mPadTOAvsASIC_Ch52 = nullptr;                                                    ///< (no average) TOA for each ASICs for channel 52
   TH2* mPadTOAvsASIC_Ch61 = nullptr;                                                    ///< (no average) TOA for each ASICs for channel 61
 
-  
-
-
   std::array<TH2*, PAD_ASICS> mPadTRIGvsWindowASIC; ///< Number of triggers per window for each ASIC
 
   /////////////////////////////////////////////////////////////////////////////////////

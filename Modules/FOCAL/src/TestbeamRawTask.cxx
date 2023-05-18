@@ -562,7 +562,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
           }
         }
         mPadASICChannelADC[iasic]->Fill(currentchannel, adc);
-        if(chan.getTOT()>0 && chan.getTOT()!=4095){
+        if (chan.getTOT() > 0 && chan.getTOT() != 4095) {
           adcsum += adc;
           kADCsum[iasic] += adc;
         }
@@ -578,7 +578,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
       mPadASICChannelTOA[iasic]->Fill(currentchannel, chan.getTOA());
       if (chan.getTOT()) {
         mPadASICChannelTOT[iasic]->Fill(currentchannel, chan.getTOT());
-        if(chan.getTOT()!=4095){
+        if (chan.getTOT() != 4095) {
           totsum += chan.getTOT();
           kTOTsum[iasic] += chan.getTOT();
         }
@@ -589,13 +589,19 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
           hist->second->Fill(chan.getADC());
         }
       }
-      if(currentchannel==14) mPadTOAvsASIC_Ch14->Fill(chan.getTOA(), iasic);
-      if(currentchannel==16) mPadTOAvsASIC_Ch16->Fill(chan.getTOA(), iasic);
-      if(currentchannel==19) mPadTOAvsASIC_Ch19->Fill(chan.getTOA(), iasic);
-      if(currentchannel==48) mPadTOAvsASIC_Ch48->Fill(chan.getTOA(), iasic);
-      if(currentchannel==52) mPadTOAvsASIC_Ch52->Fill(chan.getTOA(), iasic);
-      if(currentchannel==61) mPadTOAvsASIC_Ch61->Fill(chan.getTOA(), iasic);
-      
+      if (currentchannel == 14)
+        mPadTOAvsASIC_Ch14->Fill(chan.getTOA(), iasic);
+      if (currentchannel == 16)
+        mPadTOAvsASIC_Ch16->Fill(chan.getTOA(), iasic);
+      if (currentchannel == 19)
+        mPadTOAvsASIC_Ch19->Fill(chan.getTOA(), iasic);
+      if (currentchannel == 48)
+        mPadTOAvsASIC_Ch48->Fill(chan.getTOA(), iasic);
+      if (currentchannel == 52)
+        mPadTOAvsASIC_Ch52->Fill(chan.getTOA(), iasic);
+      if (currentchannel == 61)
+        mPadTOAvsASIC_Ch61->Fill(chan.getTOA(), iasic);
+
       currentchannel++;
     }
     asicAverageTOA /= nAsicsWithTOA;
