@@ -265,6 +265,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
 
       mPadTRIGvsWindowASIC[iasic] = new TH2D(Form("PadTRIGvsWindowASIC_%d", iasic), Form("TRIG vs. Window ASIC %d; Window; Trig", iasic), 20, 0., 20., 128, 0., 128);
       mPadTRIGvsWindowASIC[iasic]->SetStats(false);
+      
       getObjectsManager()->startPublishing(mPadASICChannelADC[iasic]);
       getObjectsManager()->startPublishing(mPadASICChannelTOA[iasic]);
       getObjectsManager()->startPublishing(mPadASICChannelTOT[iasic]);
