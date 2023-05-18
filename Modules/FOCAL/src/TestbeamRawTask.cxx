@@ -113,6 +113,7 @@ void TestbeamRawTask::default_init()
   std::fill(mPixelSegmentHitmapLayer.begin(), mPixelSegmentHitmapLayer.end(), nullptr);
   std::fill(mPixelHitDistribitionLayer.begin(), mPixelHitDistribitionLayer.end(), nullptr);
   std::fill(mPixelHitsTriggerLayer.begin(), mPixelHitsTriggerLayer.end(), nullptr);
+  std::fill(mPadTRIGvsWindowASIC.begin(), mPadTRIGvsWindowASIC.end(), nullptr);
 }
 
 void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
@@ -262,6 +263,8 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       mPadADCCorrASIC[iasic] = new TH2D(Form("PadADCCorrASIC_%d_%d", iasic+1, iasic), Form("ADC ASIC %d vs. ASIC %d; ADC ASIC %d; ADC ASIC %d", iasic, iasic+1, iasic, iasic+1), 400, 0., 16000, 400, 0., 16000);
       mPadADCCorrASIC[iasic]->SetStats(false);
 
+      mPadTRIGvsWindowASIC[iasic] = new TH2D(Form("PadTRIGvsWindowASIC_%d", iasic), Form("TRIG vs. Window ASIC %d; Window; Trig", iasic), 20, 0., 20., 128, 0., 128);
+      mPadTRIGvsWindowASIC[iasic]->SetStats(false);
       getObjectsManager()->startPublishing(mPadASICChannelADC[iasic]);
       getObjectsManager()->startPublishing(mPadASICChannelTOA[iasic]);
       getObjectsManager()->startPublishing(mPadASICChannelTOT[iasic]);
@@ -270,6 +273,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       getObjectsManager()->startPublishing(mPadADCSumASIC[iasic]);
       getObjectsManager()->startPublishing(mPadTOTCorrASIC[iasic]);
       getObjectsManager()->startPublishing(mPadADCCorrASIC[iasic]);
+      getObjectsManager()->startPublishing(mPadTRIGvsWindowASIC[iasic]);
 
       mPadChannelProjections[iasic] = std::make_unique<PadChannelProjections>();
       mPadChannelProjections[iasic]->init(mChannelsPadProjections, iasic);
@@ -280,7 +284,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     getObjectsManager()->startPublishing(mPayloadSizePadsGBT);
 
     // Pad average TOA per ASIC for all channels with TOA>0
-    mPadTOAvsASIC = new TH2D("PadTOAvsASIC", "average Pad TOA vs. ASIC (for TOA>0); TOA; ASIC NO.", 512 , 0., 1024., PAD_ASICS, 0 , PAD_ASICS-1);
+    mPadTOAvsASIC = new TH2D("PadTOAvsASIC", "average Pad TOA vs. ASIC (for TOA>0); TOA; ASIC NO.", 512 , 0., 1024., PAD_ASICS, 0 , PAD_ASICS);
     mPadTOAvsASIC->SetStats(false);
     getObjectsManager()->startPublishing(mPadTOAvsASIC);
   }
@@ -512,7 +516,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
     int currentchannel = 0;
     double totsum = 0;
     double adcsum = 0;
-    
+
     double asicAverageTOA = 0; // average TOA of all channels with TOA>0
     int nAsicsWithTOA = 0; // number of ASICs with TOA>0
     for (const auto& chan : asic.getChannels()) {
@@ -573,6 +577,25 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
     totglobalsum += totsum;
     adcglobalsum += adcsum;
 
+    // find all trigger windows of asic (20 windows)
+    auto trigwindows = eventdata[iasic].getTriggerWords();
+    
+    // loop over span of all trigger windows
+    int w = 0;
+    for (auto& trigwindow : trigwindows) {
+        // find largest value from all trigger regions
+        uint64_t maxTrig = 0;
+        if(trigwindow.mTrigger0 >= maxTrig) maxTrig = trigwindow.mTrigger0;
+        if(trigwindow.mTrigger1 >= maxTrig) maxTrig = trigwindow.mTrigger1;
+        if(trigwindow.mTrigger2 >= maxTrig) maxTrig = trigwindow.mTrigger2;
+        if(trigwindow.mTrigger3 >= maxTrig) maxTrig = trigwindow.mTrigger3;
+        if(trigwindow.mTrigger4 >= maxTrig) maxTrig = trigwindow.mTrigger4;
+        if(trigwindow.mTrigger5 >= maxTrig) maxTrig = trigwindow.mTrigger5;
+        if(trigwindow.mTrigger6 >= maxTrig) maxTrig = trigwindow.mTrigger6;
+        if(trigwindow.mTrigger7 >= maxTrig) maxTrig = trigwindow.mTrigger7;
+        mPadTRIGvsWindowASIC[iasic]->Fill(w,maxTrig);
+        w++;
+    }
     // Fill CMN channels
     if (asic.getFirstCMN().getTOT() < mPadTOTCutADC) {
       mPadASICChannelADC[iasic]->Fill(currentchannel, asic.getFirstCMN().getADC());
@@ -805,6 +828,15 @@ void TestbeamRawTask::reset()
         hist->Reset();
       }
     }
+
+    for (auto hist : mPadTRIGvsWindowASIC) {
+      if (hist) {
+        hist->Reset();
+      }
+    }
+    mPadTOTSumGlobal->Reset();
+    mPadADCSumGlobal->Reset();
+    mPadTOAvsASIC->Reset();
   }
 
   if (!mDisablePixels) {
@@ -864,10 +896,6 @@ void TestbeamRawTask::reset()
       }
     }
   }
-
-  mPadTOTSumGlobal->Reset();
-  mPadADCSumGlobal->Reset();
-  mPadTOAvsASIC->Reset();
 }
 
 TestbeamRawTask::PadChannelProjections::~PadChannelProjections()
