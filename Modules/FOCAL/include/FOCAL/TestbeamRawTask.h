@@ -126,7 +126,7 @@ class TestbeamRawTask final : public TaskInterface
   TH1* mPadTOTSumGlobal = nullptr;                                                      ///< Sum of TOT per event
   TH1* mPadADCSumGlobal = nullptr;                                                      ///< Sum of ADC per event
   std::array<std::unique_ptr<PadChannelProjections>, PAD_ASICS> mPadChannelProjections; ///< ADC projections per ASIC channel
-  TH2* mPadTOAvsASIC = nullptr;                                                       ///< average TOA for each ASICs
+  TH2* mPadTOAvsASIC = nullptr;                                                         ///< average TOA for each ASICs
 
   std::array<TH2*, PAD_ASICS> mPadTRIGvsWindowASIC; ///< Number of triggers per window for each ASIC
 
