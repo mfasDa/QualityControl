@@ -363,7 +363,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
          pixel_chips = pixel_columns * pixel_rows,
          segments_colums = pixel_columns * pixel_segments.first,
          segments_rows = pixel_rows * pixel_segments.second;
-    ILOG(Info, Support) << "Pixel hitmap, segments per chip (" << pixel_segments.first << " columns, " << pixel_segments.second << " rows), segment columns " << segments_colums << ", rows " << segments_rows << std::endl;
+    ILOG(Info, Support) << "Pixel hitmap, segments per chip (" << pixel_segments.first << " columns, " << pixel_segments.second << " rows), segment columns " << segments_colums << ", rows " << segments_rows << ENDM;
     std::array<int, 2> pixelLayerIndex = { { 10, 5 } };
     ILOG(Info, Support) << "Setup acceptance histograms " << pixel_columns << " colums and " << pixel_rows << " rows (" << pixel_chips << " chips)" << ENDM;
     for (int ilayer = 0; ilayer < PIXEL_LAYERS; ilayer++) {
