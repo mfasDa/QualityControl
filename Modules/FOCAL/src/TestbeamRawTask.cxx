@@ -248,7 +248,7 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
       mPadASICChannelTOA[iasic]->SetStats(false);
       mPadASICChannelTOT[iasic] = new TH2D(Form("PadTOT_ASIC_%d", iasic), Form("TOT vs. channel ID for ASIC %d; channel ID; TOT", iasic), PAD_CHANNELS, -0.5, PAD_CHANNELS - 0.5, RANGE_TOT / 4, 0., RANGE_TOT);
       mPadASICChannelTOT[iasic]->SetStats(false);
-      mHitMapPadASIC[iasic] = new TProfile2D(Form("HitmapPadASIC_%d", iasic), Form("Hitmap for ASIC %d; col; row", iasic), o2::focal::PadMapper::NCOLUMN, -0.5, o2::focal::PadMapper::NCOLUMN - 0.5, o2::focal::PadMapper::NROW, -0.5, o2::focal::PadMapper::NROW - 0.5);
+      mHitMapPadASIC[iasic] = new TProfile2D(Form("HitmapPadASIC_%d", iasic), Form("Hitmap for ASIC %d; col; row", iasic), o2::focal::PadMapper::NROW, -0.5, o2::focal::PadMapper::NROW - 0.5, o2::focal::PadMapper::NCOLUMN, -0.5, o2::focal::PadMapper::NCOLUMN - 0.5);
       mHitMapPadASIC[iasic]->SetStats(false);
 
       mPadTOTSumASIC[iasic] = new TH1D(Form("PadTOTSumASIC%d", iasic), Form("TOT sum for ASIC %d; TOT ASIC %d", iasic, iasic), 300, 0., 6000);
@@ -288,6 +288,25 @@ void TestbeamRawTask::initialize(o2::framework::InitContext& /*ctx*/)
     mPadTOAvsASIC = new TH2D("PadTOAvsASIC", "average Pad TOA vs. ASIC (for TOA>0); TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
     mPadTOAvsASIC->SetStats(false);
     getObjectsManager()->startPublishing(mPadTOAvsASIC);
+
+    mPadTOAvsASIC_Ch14 = new TH2D("PadTOAvsASIC_Ch14", "TOA vs. ASIC for channel 14; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch16 = new TH2D("PadTOAvsASIC_Ch16", "TOA vs. ASIC for channel 16; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch19 = new TH2D("PadTOAvsASIC_Ch19", "TOA vs. ASIC for channel 19; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch48 = new TH2D("PadTOAvsASIC_Ch48", "TOA vs. ASIC for channel 48; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch52 = new TH2D("PadTOAvsASIC_Ch52", "TOA vs. ASIC for channel 52; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch61 = new TH2D("PadTOAvsASIC_Ch61", "TOA vs. ASIC for channel 61; TOA; ASIC NO.", 512, 0., 1024., PAD_ASICS, 0, PAD_ASICS);
+    mPadTOAvsASIC_Ch14->SetStats(false);
+    mPadTOAvsASIC_Ch16->SetStats(false);
+    mPadTOAvsASIC_Ch19->SetStats(false);
+    mPadTOAvsASIC_Ch48->SetStats(false);
+    mPadTOAvsASIC_Ch52->SetStats(false);
+    mPadTOAvsASIC_Ch61->SetStats(false);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch14);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch16);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch19);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch48);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch52);
+    getObjectsManager()->startPublishing(mPadTOAvsASIC_Ch61);
   }
 
   /////////////////////////////////////////////////////////////////
@@ -543,10 +562,12 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
           }
         }
         mPadASICChannelADC[iasic]->Fill(currentchannel, adc);
-        adcsum += adc;
-        kADCsum[iasic] += adc;
+        if(chan.getTOT()>0 && chan.getTOT()!=4095){
+          adcsum += adc;
+          kADCsum[iasic] += adc;
+        }
         auto [column, row] = mPadMapper.getRowColFromChannelID(currentchannel);
-        mHitMapPadASIC[iasic]->Fill(column, row, adc);
+        mHitMapPadASIC[iasic]->Fill(row, column, adc);
 
         // get average TOA of all channels in the ASIC
         if (chan.getTOA() > 0) {
@@ -557,8 +578,10 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
       mPadASICChannelTOA[iasic]->Fill(currentchannel, chan.getTOA());
       if (chan.getTOT()) {
         mPadASICChannelTOT[iasic]->Fill(currentchannel, chan.getTOT());
-        totsum += chan.getTOT();
-        kTOTsum[iasic] += chan.getTOT();
+        if(chan.getTOT()!=4095){
+          totsum += chan.getTOT();
+          kTOTsum[iasic] += chan.getTOT();
+        }
       }
       if (std::find(mChannelsPadProjections.begin(), mChannelsPadProjections.end(), currentchannel) != mChannelsPadProjections.end()) {
         auto hist = mPadChannelProjections[iasic]->mHistos.find(currentchannel);
@@ -566,6 +589,13 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
           hist->second->Fill(chan.getADC());
         }
       }
+      if(currentchannel==14) mPadTOAvsASIC_Ch14->Fill(chan.getTOA(), iasic);
+      if(currentchannel==16) mPadTOAvsASIC_Ch16->Fill(chan.getTOA(), iasic);
+      if(currentchannel==19) mPadTOAvsASIC_Ch19->Fill(chan.getTOA(), iasic);
+      if(currentchannel==48) mPadTOAvsASIC_Ch48->Fill(chan.getTOA(), iasic);
+      if(currentchannel==52) mPadTOAvsASIC_Ch52->Fill(chan.getTOA(), iasic);
+      if(currentchannel==61) mPadTOAvsASIC_Ch61->Fill(chan.getTOA(), iasic);
+      
       currentchannel++;
     }
     asicAverageTOA /= nAsicsWithTOA;
@@ -846,6 +876,13 @@ void TestbeamRawTask::reset()
     mPadTOTSumGlobal->Reset();
     mPadADCSumGlobal->Reset();
     mPadTOAvsASIC->Reset();
+
+    mPadTOAvsASIC_Ch14->Reset();
+    mPadTOAvsASIC_Ch16->Reset();
+    mPadTOAvsASIC_Ch19->Reset();
+    mPadTOAvsASIC_Ch48->Reset();
+    mPadTOAvsASIC_Ch52->Reset();
+    mPadTOAvsASIC_Ch61->Reset();
   }
 
   if (!mDisablePixels) {
