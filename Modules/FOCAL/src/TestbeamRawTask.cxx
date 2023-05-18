@@ -562,7 +562,7 @@ void TestbeamRawTask::processPadEvent(gsl::span<const o2::focal::PadGBTWord> pad
           }
         }
         mPadASICChannelADC[iasic]->Fill(currentchannel, adc);
-        if (chan.getTOT() > 0 && chan.getTOT() != 4095) {
+        if ((chan.getTOT() == 0) && (chan.getTOT() != 4095)) {
           adcsum += adc;
           kADCsum[iasic] += adc;
         }
